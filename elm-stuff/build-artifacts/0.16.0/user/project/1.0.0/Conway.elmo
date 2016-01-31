@@ -1,0 +1,98 @@
+Elm.Conway = Elm.Conway || {};
+Elm.Conway.make = function (_elm) {
+   "use strict";
+   _elm.Conway = _elm.Conway || {};
+   if (_elm.Conway.values) return _elm.Conway.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Color = Elm.Color.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $Graphics$Collage = Elm.Graphics.Collage.make(_elm),
+   $Graphics$Element = Elm.Graphics.Element.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Set = Elm.Set.make(_elm),
+   $Signal = Elm.Signal.make(_elm),
+   $Time = Elm.Time.make(_elm),
+   $Window = Elm.Window.make(_elm);
+   var _op = {};
+   var drawCell = F2(function (_p1,_p0) {
+      var _p2 = _p1;
+      var _p3 = _p0;
+      var size = $Basics.toFloat(_p2._1) / 50;
+      var shape = A2($Graphics$Collage.filled,$Color.green,$Graphics$Collage.circle(size / 2));
+      var _p4 = {ctor: "_Tuple2",_0: $Basics.toFloat(_p3._0),_1: $Basics.toFloat(_p3._1)};
+      var x$ = _p4._0;
+      var y$ = _p4._1;
+      var position = {ctor: "_Tuple2",_0: x$ * size,_1: y$ * size};
+      return A2($Graphics$Collage.move,position,shape);
+   });
+   var view = F2(function (_p5,model) {
+      var _p6 = _p5;
+      var _p9 = _p6._0;
+      var _p8 = _p6._1;
+      var debug = $Graphics$Collage.toForm($Graphics$Element.show({ctor: "_Tuple2",_0: _p9,_1: _p8}));
+      var cellForms = A2($List.map,drawCell({ctor: "_Tuple2",_0: _p9,_1: _p8}),model);
+      var _p7 = {ctor: "_Tuple2",_0: $Basics.toFloat(_p9),_1: $Basics.toFloat(_p8)};
+      var w$ = _p7._0;
+      var h$ = _p7._1;
+      var background = A2($Graphics$Collage.filled,$Color.black,A2($Graphics$Collage.rect,w$,h$));
+      return A3($Graphics$Collage.collage,_p9,_p8,A2($Basics._op["++"],_U.list([background,debug]),cellForms));
+   });
+   var Step = {ctor: "Step"};
+   var inputs = A2($Signal.map,$Basics.always(Step),$Time.every(300));
+   var neighbours = function (_p10) {
+      var _p11 = _p10;
+      var _p13 = _p11._1;
+      var _p12 = _p11._0;
+      return _U.list([{ctor: "_Tuple2",_0: _p12 - 1,_1: _p13 - 1}
+                     ,{ctor: "_Tuple2",_0: _p12 - 1,_1: _p13}
+                     ,{ctor: "_Tuple2",_0: _p12 - 1,_1: _p13 + 1}
+                     ,{ctor: "_Tuple2",_0: _p12,_1: _p13 - 1}
+                     ,{ctor: "_Tuple2",_0: _p12,_1: _p13 + 1}
+                     ,{ctor: "_Tuple2",_0: _p12 + 1,_1: _p13 - 1}
+                     ,{ctor: "_Tuple2",_0: _p12 + 1,_1: _p13}
+                     ,{ctor: "_Tuple2",_0: _p12 + 1,_1: _p13 + 1}]);
+   };
+   var combinedNeighbours = function (cells) {    return $Set.toList($Set.fromList(A2($List.concatMap,neighbours,cells)));};
+   var countLiveNeighbours = F2(function (liveCells,cell) {
+      var isLive = function (cell) {    return A2($List.member,cell,liveCells);};
+      var liveNeighbours = A2($List.filter,isLive,neighbours(cell));
+      return $List.length(liveNeighbours);
+   });
+   var willSurvive = F2(function (liveCells,cell) {    var count = A2(countLiveNeighbours,liveCells,cell);return _U.eq(count,2) || _U.eq(count,3);});
+   var willSpawn = F2(function (liveCells,cell) {    return _U.eq(A2(countLiveNeighbours,liveCells,cell),3);});
+   var step = function (liveCells) {
+      var spawners = A2($List.filter,willSpawn(liveCells),combinedNeighbours(liveCells));
+      var survivors = A2($List.filter,willSurvive(liveCells),liveCells);
+      return A2($Basics._op["++"],survivors,spawners);
+   };
+   var update = F2(function (action,model) {    var _p14 = action;return step(model);});
+   var initialModel = _U.list([{ctor: "_Tuple2",_0: 0,_1: 0}
+                              ,{ctor: "_Tuple2",_0: 0,_1: 1}
+                              ,{ctor: "_Tuple2",_0: 0,_1: 2}
+                              ,{ctor: "_Tuple2",_0: 0,_1: 3}
+                              ,{ctor: "_Tuple2",_0: 0,_1: 4}
+                              ,{ctor: "_Tuple2",_0: 0,_1: 5}
+                              ,{ctor: "_Tuple2",_0: 0,_1: 6}
+                              ,{ctor: "_Tuple2",_0: 1,_1: 3}
+                              ,{ctor: "_Tuple2",_0: -1,_1: 3}]);
+   var model = A3($Signal.foldp,update,initialModel,inputs);
+   var main = A3($Signal.map2,view,$Window.dimensions,model);
+   return _elm.Conway.values = {_op: _op
+                               ,initialModel: initialModel
+                               ,neighbours: neighbours
+                               ,combinedNeighbours: combinedNeighbours
+                               ,countLiveNeighbours: countLiveNeighbours
+                               ,willSurvive: willSurvive
+                               ,willSpawn: willSpawn
+                               ,step: step
+                               ,Step: Step
+                               ,update: update
+                               ,model: model
+                               ,inputs: inputs
+                               ,view: view
+                               ,drawCell: drawCell
+                               ,main: main};
+};
